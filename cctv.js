@@ -95,10 +95,11 @@ function startMapCoords() {
     var urlParams = new URLSearchParams(window.location.search);
     var lat = urlParams.get('lat');
     var lng = urlParams.get('lng');
-    if (lat && lng) {
-        return [lat, lng];
+    var z = urlParams.get('z');
+    if (lat && lng && z) {
+        return [lat, lng, z];
     } else {
-        return [-34.9285, 138.6007];
+        return [-34.9285, 138.6007, 12];
     }
 }
 
@@ -106,18 +107,43 @@ function setUrlCoords(map) {
     var urlParams = new URLSearchParams(location.search);
     urlParams.set('lat', map.getCenter().lat);
     urlParams.set('lng', map.getCenter().lng);
+    urlParams.set('z', map.getZoom());
     var newUrl = location.protocol + "//" + location.host + location.pathname + '?' + urlParams.toString();
     history.replaceState(null, '', newUrl);
 }
 
 
-var map = L.map('map').setView(startMapCoords(), 17);
+function init() {
+    // OpenStreetMap
+    var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    });
 
-L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
-    maxZoom: 20,
-    subdomains:['mt0','mt1','mt2','mt3'],
-    attribution: '&copy; Google'
-}).addTo(map);
+    // Google Satellite
+    var sat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
+        maxZoom: 20,
+        subdomains:['mt0','mt1','mt2','mt3'],
+        attribution: '&copy; Google'
+    });
 
-map.on('click', (e) => addCamera(e.latlng));
-map.on('moveend', (e) => setUrlCoords(map));
+    var coords = startMapCoords();
+    var map = L.map('map', {
+        center: [coords[0], coords[1]],
+        zoom: coords[2],
+        layers: [osm]
+    });
+
+    L.control.layers({
+        "OpenStreetMap": osm,
+        "Google Satellite": sat,
+    }, {}).addTo(map);
+
+    map.on('click', (e) => addCamera(e.latlng));
+    map.on('moveend', (e) => setUrlCoords(map));
+
+    window.map = map;
+}
+
+
+init();
