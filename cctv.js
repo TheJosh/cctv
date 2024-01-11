@@ -1,4 +1,6 @@
+var toolsEl = document.getElementById('tools');
 var cameras = [];
+var currentCam = null;
 
 Math.degrees = function(radians) {
     return radians * 180 / Math.PI;
@@ -29,6 +31,7 @@ function buildPolyCoords(latlng, facingAngle, spanAngle, distMetres) {
 function addCamera(latlng) {
     var cam = {
         position: latlng,
+        angle: 0,
         sensorSize: 6.4,    // mm diagional = 1/2.8"
         focalLength: 2.8,   // mm
         range: 30,          // metres
@@ -36,7 +39,7 @@ function addCamera(latlng) {
 
     cam.fov = Math.degrees(2 * Math.atan(cam.sensorSize / (2.0 * cam.focalLength)));
 
-    var coords = buildPolyCoords(cam.position, 0, cam.fov, cam.range);
+    var coords = buildPolyCoords(cam.position, cam.angle, cam.fov, cam.range);
     var ndPolygon = L.polygon(coords).addTo(map);
 
     var ndCentre = L.circle([cam.position.lat, cam.position.lng], {
@@ -46,10 +49,25 @@ function addCamera(latlng) {
         radius: 0.5
     }).addTo(map);
 
+    ndPolygon.on('click', function(e) { L.DomEvent.stopPropagation(e); setCurrent(cam) });
+
     cam.ndPolygon = ndPolygon;
     cam.ndCentre = ndCentre;
     cameras.push(cam);
+
+    setCurrent(cam);
 }
+
+/**
+ * Set the current camera in the tools panel
+ */
+function setCurrent(cam) {
+    toolsEl.innerHTML = `${cam.position.lat}<br>${cam.position.lng}<br>${cam.angle}`
+        + `<br><br>Sensor: ${cam.sensorSize}mm<br>Focal Len: ${cam.focalLength}mm<br>Range: ${cam.range}m<br>FOV: ${Math.round(cam.fov)} degrees`;
+
+    currentCam = cam;
+}
+
 
 
 var map = L.map('map').setView([-31.96173, 141.45998], 17);
