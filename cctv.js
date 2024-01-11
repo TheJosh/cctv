@@ -62,12 +62,30 @@ function addCamera(latlng) {
  * Set the current camera in the tools panel
  */
 function setCurrent(cam) {
-    toolsEl.innerHTML = `${cam.position.lat}<br>${cam.position.lng}<br>${cam.angle}`
-        + `<br><br>Sensor: ${cam.sensorSize}mm<br>Focal Len: ${cam.focalLength}mm<br>Range: ${cam.range}m<br>FOV: ${Math.round(cam.fov)} degrees`;
+    toolsEl.innerHTML = `
+        ${cam.position.lat}<br>${cam.position.lng}
+        <br>
+        Angle: <input type="range" min="1" max="359" id="fld-angle" value="${cam.angle}"> degrees
+        <br>
+        <br>Sensor: ${cam.sensorSize}mm
+        <br>Focal Len: ${cam.focalLength}mm
+        <br>
+        <br>Range: <input type="range" min="1" max="100" id="fld-range" value="${cam.range}"> meters
+        <br>FOV: <input type="range" min="1" max="359" id="fld-fov" value="${cam.fov}"> degrees
+    `;
+
+    document.getElementById('fld-angle').addEventListener('change', (e) => { cam.angle = parseFloat(e.target.value); renderCam(cam) });
+    document.getElementById('fld-range').addEventListener('change', (e) => { cam.range = parseFloat(e.target.value); renderCam(cam) });
+    document.getElementById('fld-fov').addEventListener('change', (e) => { cam.fov = parseFloat(e.target.value); renderCam(cam) });
 
     currentCam = cam;
 }
 
+function renderCam(cam) {
+    console.log(cam);
+    var coords = buildPolyCoords(cam.position, cam.angle, cam.fov, cam.range);
+    cam.ndPolygon.setLatLngs(coords);
+}
 
 
 var map = L.map('map').setView([-31.96173, 141.45998], 17);
