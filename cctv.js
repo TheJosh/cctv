@@ -32,12 +32,12 @@ function addCamera(latlng) {
     var cam = {
         position: latlng,
         angle: 0,
-        sensorSize: 6.4,    // mm diagional = 1/2.8"
+        sensorSize: 6.43,   // mm diagional = 1/2.8"
         focalLength: 2.8,   // mm
         range: 30,          // metres
     };
 
-    cam.fov = Math.degrees(2 * Math.atan(cam.sensorSize / (2.0 * cam.focalLength)));
+    cam.fov = calcFov(cam.sensorSize, cam.focalLength);
 
     var coords = buildPolyCoords(cam.position, cam.angle, cam.fov, cam.range);
     var ndPolygon = L.polygon(coords).addTo(map);
@@ -58,6 +58,10 @@ function addCamera(latlng) {
     setCurrent(cam);
 }
 
+function calcFov(sensorSize, focalLength) {
+    return Math.degrees(2 * Math.atan(sensorSize / (2.0 * focalLength)));
+}
+
 /**
  * Set the current camera in the tools panel
  */
@@ -65,7 +69,7 @@ function setCurrent(cam) {
     toolsEl.innerHTML = `
         ${cam.position.lat}<br>${cam.position.lng}
         <br>
-        Angle: <input type="range" min="1" max="359" id="fld-angle" value="${cam.angle}"> degrees
+        Angle: <input type="range" min="-360" max="360" id="fld-angle" value="${cam.angle}"> degrees
         <br>
         <br>Sensor: ${cam.sensorSize}mm
         <br>Focal Len: ${cam.focalLength}mm
@@ -74,25 +78,46 @@ function setCurrent(cam) {
         <br>FOV: <input type="range" min="1" max="359" id="fld-fov" value="${cam.fov}"> degrees
     `;
 
-    document.getElementById('fld-angle').addEventListener('change', (e) => { cam.angle = parseFloat(e.target.value); renderCam(cam) });
-    document.getElementById('fld-range').addEventListener('change', (e) => { cam.range = parseFloat(e.target.value); renderCam(cam) });
-    document.getElementById('fld-fov').addEventListener('change', (e) => { cam.fov = parseFloat(e.target.value); renderCam(cam) });
+    document.getElementById('fld-angle').addEventListener('input', (e) => { cam.angle = parseFloat(e.target.value); renderCam(cam) });
+    document.getElementById('fld-range').addEventListener('input', (e) => { cam.range = parseFloat(e.target.value); renderCam(cam) });
+    document.getElementById('fld-fov').addEventListener('input', (e) => { cam.fov = parseFloat(e.target.value); renderCam(cam) });
 
     currentCam = cam;
 }
 
 function renderCam(cam) {
-    console.log(cam);
     var coords = buildPolyCoords(cam.position, cam.angle, cam.fov, cam.range);
     cam.ndPolygon.setLatLngs(coords);
 }
 
 
-var map = L.map('map').setView([-31.96173, 141.45998], 17);
+function startMapCoords() {
+    var urlParams = new URLSearchParams(window.location.search);
+    var lat = urlParams.get('lat');
+    var lng = urlParams.get('lng');
+    if (lat && lng) {
+        return [lat, lng];
+    } else {
+        return [-34.9285, 138.6007];
+    }
+}
 
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+function setUrlCoords(map) {
+    var urlParams = new URLSearchParams(location.search);
+    urlParams.set('lat', map.getCenter().lat);
+    urlParams.set('lng', map.getCenter().lng);
+    var newUrl = location.protocol + "//" + location.host + location.pathname + '?' + urlParams.toString();
+    history.replaceState(null, '', newUrl);
+}
+
+
+var map = L.map('map').setView(startMapCoords(), 17);
+
+L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
+    maxZoom: 20,
+    subdomains:['mt0','mt1','mt2','mt3'],
+    attribution: '&copy; Google'
 }).addTo(map);
 
 map.on('click', (e) => addCamera(e.latlng));
+map.on('moveend', (e) => setUrlCoords(map));
