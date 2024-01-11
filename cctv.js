@@ -1,9 +1,4 @@
-var map = L.map('map').setView([-31.96173, 141.45998], 17);
-
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-}).addTo(map);
+var cameras = [];
 
 Math.degrees = function(radians) {
     return radians * 180 / Math.PI;
@@ -32,20 +27,36 @@ function buildPolyCoords(latlng, facingAngle, spanAngle, distMetres) {
  * Add a camera at a given coordinate
  */
 function addCamera(latlng) {
-    var sensorSize = 6.4;    // mm diagional = 1/2.8"
-    var focalLength = 2.8;   // mm
-    var fov = Math.degrees(2 * Math.atan(sensorSize / (2.0 * focalLength)));
-    var range = 30;          // metres
+    var cam = {
+        position: latlng,
+        sensorSize: 6.4,    // mm diagional = 1/2.8"
+        focalLength: 2.8,   // mm
+        range: 30,          // metres
+    };
 
-    var coords = buildPolyCoords(latlng, 0, fov, range);
-    var polygon = L.polygon(coords).addTo(map);
+    cam.fov = Math.degrees(2 * Math.atan(cam.sensorSize / (2.0 * cam.focalLength)));
 
-    var circle = L.circle([latlng.lat, latlng.lng], {
+    var coords = buildPolyCoords(cam.position, 0, cam.fov, cam.range);
+    var ndPolygon = L.polygon(coords).addTo(map);
+
+    var ndCentre = L.circle([cam.position.lat, cam.position.lng], {
         color: 'red',
         fillColor: '#f03',
         fillOpacity: 0.5,
         radius: 0.5
     }).addTo(map);
+
+    cam.ndPolygon = ndPolygon;
+    cam.ndCentre = ndCentre;
+    cameras.push(cam);
 }
+
+
+var map = L.map('map').setView([-31.96173, 141.45998], 17);
+
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
 
 map.on('click', (e) => addCamera(e.latlng));
